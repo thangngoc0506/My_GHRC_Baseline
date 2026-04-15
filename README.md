@@ -26,7 +26,6 @@ This repository provides a unified baseline implementation for GHRC 2026 partici
 | 🤖**Simulation**         | High-fidelity robot simulation based on NVIDIA Isaac Sim                             |
 | 📊**Data Collection**    | Keyboard, Pico, and more; recordings in standard**LeRobotDataset V2.1** format |
 | 🧠**Model Training**     | Imitation-learning policies including**ACT**, **Pi0**, and others        |
-| 📦**Pretrained Weights** | Baseline checkpoints for quick deployment and fine-tuning                            |
 
 ---
 
@@ -38,7 +37,6 @@ Large artifacts are hosted on Hugging Face. Download them before use:
 | :---------------------------------- | :-------------------------- | :---------------------------------------------------------------------------------------------------------- |
 | 🤖 Simulation Assets & Robot Models | `assets/` (Git submodule) | [UBTECH-Robotics/challenge2026_assets](https://huggingface.co/UBTECH-Robotics/challenge2026_assets)            |
 | 📊 Training Datasets                | `datasets/`               | [UBTECH-Robotics/challenge2026_dataset](https://huggingface.co/datasets/UBTECH-Robotics/challenge2026_dataset) |
-| 🏋️ Pretrained Model Weights       | `challenge2026_baseline/` | [UBTECH-Robotics/challenge2026_baseline](https://huggingface.co/UBTECH-Robotics/challenge2026_baseline)        |
 
 ### Quick download commands
 
@@ -55,8 +53,6 @@ git submodule update --init --recursive
 # Training datasets
 huggingface-cli download UBTECH-Robotics/challenge2026_dataset --local-dir ./datasets --repo-type dataset
 
-# Pretrained weights
-huggingface-cli download UBTECH-Robotics/challenge2026_baseline --local-dir ./challenge2026_baseline --repo-type model
 ```
 
 ---
@@ -190,7 +186,7 @@ Inside the container (default workspace: `/workspace/GlobalHumanoidRobotChalleng
 ```bash
 /isaac-sim/python.sh lerobot/scripts/control_robot.py \
     --robot.type=walker_s2_sim \
-    --control.root=/workspace/GlobalHumanoidRobotChallenge2026_Baseline/datasets/task4/v1 \
+    --control.root=/workspace/GlobalHumanoidRobotChallenge2026_Baseline/datasets/Packing_Box/v1 \
     --control.type=record \
     --control.task=Packing_Box \
     --control.fps=30 \
@@ -232,7 +228,7 @@ Replay a previously recorded episode to verify data quality or debug the scene:
     --control.type=replay \
     --control.task=Packing_Box \
     --control.root=./challenge2026_dataset/Packing_Box/v1 \
-    --control.repo_id=your_org/task4 \
+    --control.repo_id=your_org/Packing_Box \
     --control.episode=10 \
     --control.fps=30 \
     --control.play_sounds=false
@@ -291,7 +287,7 @@ Below is a complete example for training an **ACT** policy on Task 4 with all re
 
 ```
 
-> Replace `your_org/task4_dataset` with your own dataset repo ID and `your_wandb_entity` with your WandB username or team name. Remove `--wandb.entity` if you do not use WandB.
+> Replace `your_org/Packing_Box_dataset` with your own dataset repo ID and `your_wandb_entity` with your WandB username or team name. Remove `--wandb.entity` if you do not use WandB.
 
 **Dataset & output flags**
 
@@ -397,7 +393,7 @@ Run a trained policy in the simulation environment and automatically record resu
 
 ## Task Definitions
 
-### Task 1 — Pick and Place
+### Task 1 — Part_Sorting
 
 **Goal:** Pick parts from the workbench and place them in the designated box.
 
@@ -412,7 +408,7 @@ Run a trained policy in the simulation environment and automatically record resu
 
 **Config:** `Ubtech_sim/config/Part_Sorting.yaml`
 
-### Task 2 — Conveyor Belt Sorting
+### Task 2 — Conveyor_Sorting
 
 **Goal:** Continuously perceive parts moving on the conveyor belt, distinguish servo assemblies (Part B) from orthogonal reducers (Part A), and sort each into the designated box on the left or right side of the conveyor.
 
@@ -446,7 +442,7 @@ Run a trained policy in the simulation environment and automatically record resu
 
 **Config:** `Ubtech_sim/config/Conveyor_Sorting.yaml`
 
-### Task 3 — Component Embedding
+### Task 3 — Foam_Inlaying
 
 **Goal:** Pick all specified parts from the source box and embed them into the correct foam slots of the cargo case, meeting quantity, position, and orientation requirements.
 
@@ -499,7 +495,7 @@ Run a trained policy in the simulation environment and automatically record resu
 - Long-edge targets: `[-3.4906585, -3.4906585]` (joints 0, 1)
 - Joint threshold: `0.2 rad`
 
-**Config:** `Ubtech_sim/config/Part_Sorting.yaml`
+**Config:** `Ubtech_sim/config/Packing_Box.yaml`
 
 ---
 
@@ -507,11 +503,6 @@ Run a trained policy in the simulation environment and automatically record resu
 
 ```
 .
-├── challenge2026_baseline/         # Pretrained weights (download from HF)
-│   ├── Part_Sorting/
-│   ├── Conveyor_Sorting/
-│   ├── Foam_Inlaying/
-│   └── Packing_Box/
 ├── datasets/                       # Training data (download from HF)
 │   ├── Part_Sorting/
 │   ├── Conveyor_Sorting/
@@ -561,7 +552,7 @@ Core directory: `assets/resources/`
 
 LeRobot's `walker_s2_sim` reads `task_cfg_path` from `WalkerS2SimRobotConfig`, then resolves `root_path` to `assets/resources/`.
 
-Example `Ubtech_sim/config/task1.yaml`:
+Example `Ubtech_sim/config/Part_Sorting.yaml`:
 
 ```yaml
 root_path: "../assets/resources/"
@@ -606,7 +597,7 @@ Configure `WalkerS2SimRobotConfig` in `lerobot/common/robot_devices/robots/confi
 
 ```python
 root_path: str = "Ubtech_sim"
-task_cfg_path: str = "Ubtech_sim/config/task3.yaml"
+task_cfg_path: str = "Ubtech_sim/config/Foam_Inlaying.yaml"
 ```
 
 ### Path Reference
@@ -699,7 +690,6 @@ pre-commit install
 | 🤗[LeRobot](https://github.com/huggingface/lerobot)                                              | Underlying framework |
 | 🤗[challenge2026_assets](https://huggingface.co/UBTECH-Robotics/challenge2026_assets)            | Simulation assets    |
 | 🤗[challenge2026_dataset](https://huggingface.co/datasets/UBTECH-Robotics/challenge2026_dataset) | Training datasets    |
-| 🤗[challenge2026_baseline](https://huggingface.co/UBTECH-Robotics/challenge2026_baseline)        | Pretrained weights   |
 
 ---
 
