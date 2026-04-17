@@ -15,7 +15,6 @@
 - 基于 **NVIDIA Isaac Sim** 搭建高保真机器人仿真环境
 - 通过遥操作完成数据录制，输出标准化 **LeRobotDataset V2.1**
 - 基于模仿学习算法进行模型训练与微调
-- 使用官方预训练权重快速复现与对比实验
 
 ---
 
@@ -24,7 +23,7 @@
 | 能力                   | 说明                                                            |
 | ---------------------- | --------------------------------------------------------------- |
 | 🤖**仿真环境**   | 基于 NVIDIA Isaac Sim 的高保真机器人仿真                        |
-| 📊**数据采集**   | 支持键盘、Pico 等遥操作；输出**LeRobotDataset V2.1** 格式 |
+| 📊**数据采集**   | 支持键盘遥操作；输出**LeRobotDataset V2.1** 格式 |
 | 🧠**模型训练**   | 支持**ACT**、**Pi0** 等模仿学习算法                 |
 
 ---
@@ -78,7 +77,21 @@ huggingface-cli download UBTECH-Robotics/challenge2026_dataset --local-dir ./dat
 
 ### 1. 启动运行环境
 
-本项目使用 Docker 容器化部署，从项目根目录启动：
+本项目使用 Docker 容器化部署。
+
+#### Docker 镜像构建
+
+从 Dockerfile 构建镜像。
+
+```bash
+# 移动到 Baseline 目录下
+cd GlobalHumanoidRobotChallenge_2026_Baseline/
+
+# 构建容器
+docker build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ -t <镜像名称> -f Dockerfile .
+```
+
+从项目根目录启动：
 
 ```bash
 chmod +x run.sh
@@ -89,10 +102,10 @@ sudo ./run.sh
 
 | 环境变量                | 说明                 | 默认值                                                   |
 | ----------------------- | -------------------- | -------------------------------------------------------- |
-| `IMAGE_NAME`          | Docker 镜像名称      | `isaacsim5.1_lerobot5.1:v0`                            |
+| `IMAGE_NAME`          | Docker 镜像名称      | `GHRC_2026:v0`                            |
 | `CONTAINER_NAME`      | 容器名称             | `isaac_sim_lerobot`                                    |
 | `HOST_WORKSPACE`      | 主机项目目录路径     | `run.sh` 所在目录                                      |
-| `CONTAINER_WORKSPACE` | 容器内工作目录路径   | `/workspace/GlobalHumanoidRobotChallenge2026_Baseline` |
+| `CONTAINER_WORKSPACE` | 容器内工作目录路径   | `/workspace/GlobalHumanoidRobotChallenge_2026_Baseline` |
 | `SHM_SIZE`            | 共享内存大小         | `8g`                                                   |
 | `ISAAC_CACHE_ROOT`    | Isaac Sim 缓存目录   | `${HOME}/.cache/isaac_sim_container`                   |
 | `HF_CACHE`            | HuggingFace 缓存目录 | `${HOME}/.cache/huggingface`                           |
@@ -118,7 +131,7 @@ HOST_WORKSPACE=/my/project/path ./run.sh
 
 ### 2. 遥操作
 
-在容器内执行（默认工作目录：`/workspace/GlobalHumanoidRobotChallenge2026_Baseline`）：
+在容器内执行（默认工作目录：`/workspace/GlobalHumanoidRobotChallenge_2026_Baseline`）：
 
 ```bash
 /isaac-sim/python.sh lerobot/scripts/control_robot.py \
@@ -138,6 +151,14 @@ HOST_WORKSPACE=/my/project/path ./run.sh
 | `control.fps`             | 控制频率                       | `30`            |
 | `control.teleop_time_s`   | 遥操作时长（秒）               | `100000000`     |
 | `control.display_cameras` | 是否显示摄像头画面             | `true`          |
+
+
+| 任务名（`control.task`）            | 配置文件   |
+| -------------------------- | --------------- |
+| Part_Sorting  | `Ubtech_sim/config/Part_Sorting.yaml` |
+| Conveyor_Sorting  | `Ubtech_sim/config/Conveyor_Sorting.yaml` |
+| Foam_Inlaying  | `Ubtech_sim/config/Part_Sorting.yaml` |
+| Packing_Box  | `Ubtech_sim/config/Part_Sorting.yaml` |
 
 #### 键盘映射
 
@@ -186,7 +207,7 @@ HOST_WORKSPACE=/my/project/path ./run.sh
 ```bash
 /isaac-sim/python.sh lerobot/scripts/control_robot.py \
     --robot.type=walker_s2_sim \
-    --control.root=/workspace/GlobalHumanoidRobotChallenge2026_Baseline/datasets/Packing_Box/v1 \
+    --control.root=/workspace/GlobalHumanoidRobotChallenge_2026_Baseline/datasets/Packing_Box/v1 \
     --control.type=record \
     --control.task=Packing_Box \
     --control.fps=30 \
@@ -389,114 +410,6 @@ HOST_WORKSPACE=/my/project/path ./run.sh
 
 ---
 
-## 任务定义
-
-### Task1：抓取 - 放置（**Part_Sorting**）
-
-**任务目标：** 从工作台上抓取零件，并放入指定料盒。
-
-**评分规则：**
-
-| 指标     | 分值 | 说明                                      |
-| -------- | ---: | ----------------------------------------- |
-| 抬升评分 |   40 | 零件 Z 高度达到阈值，每个 10 分，满分 40  |
-| 入箱评分 |   40 | 零件成功进入正确箱体，每个 10 分，满分 40 |
-| 时间评分 |   20 | 40 秒内完成满分，超时每 10 秒扣 5 分      |
-| 总分     |  100 | 总分达到 100 判定成功                     |
-
-**配置文件：** `Ubtech_sim/config/Part_Sorting.yaml`
-
-### Task2：工件传送带分拣（**Conveyor_Sorting**）
-
-**任务目标：** 对运行中的传送带进行实时感知，识别舵机组装件（B 零件）与正交减速器（A 零件），并分别放入传送带左右两侧指定料箱，实现自动化分拣。
-
-**场景元素：** 桌子、传送带、零件、料箱。
-
-**传送带参数：**
-
-| 参数         | 数值                                 |
-| ------------ | ------------------------------------ |
-| 速度         | 0.02 m/s                             |
-| 运行方向     | 沿 X 轴，行程 1000 mm                |
-| 尺寸         | 长 1500 mm × 宽 300 mm，高 1000 mm  |
-| 零件出现间隔 | 每 5–10 s 随机出现一个，总时长 80 s |
-| 出现位置     | 传送带起点中轴，出现姿态随机         |
-
-**零件清单：**
-
-| 编号   | 名称       | 尺寸               | 颜色 |
-| ------ | ---------- | ------------------ | ---- |
-| A 零件 | 正交减速器 | 最大边长 40–60 mm | 蓝色 |
-| B 零件 | 舵机组装件 | 80 × 50 × 45 mm  | 原色 |
-
-**评分规则：** 每轮 10 个工件（5×A + 5×B），共 10 轮，满分 1000 分。
-
-| 评分项             |       分值 | 说明                                 |
-| ------------------ | ---------: | ------------------------------------ |
-| 分拣成功           |   10 分/个 | 工件完全脱离夹爪并静止在正确料箱内部 |
-| 分拣失败           |       0 分 | 工件掉落或放入错误料箱               |
-| 抓取成功但分拣错误 | 仅得抓取分 | 抓取计分，分拣不计分                 |
-| 单轮总分           |      80 分 | —                                   |
-
-**配置文件：** `Ubtech_sim/config/Conveyor_Sorting.yaml`
-
-### Task3：工件嵌装（**Foam_Inlaying**）
-
-**任务目标：** 将料箱中指定数量、指定类别的工件全部正确嵌装至航空箱泡棉的对应槽位，确保数量、位置与姿态均满足要求。
-
-**场景元素：** 桌子、带槽泡棉、料箱。
-
-**时间限制：** ≤ 2 分钟；每超时 30 秒扣 5 分（扣完为止）。
-
-**零件清单：**
-
-| 编号   | 名称              | 尺寸              | 颜色     |
-| ------ | ----------------- | ----------------- | -------- |
-| A 零件 | 28 步进电机（小） | 50 × 20 × 25 mm | 两种颜色 |
-| B 零件 | 舵机组装件（大）  | 80 × 50 × 45 mm | 两种颜色 |
-
-**泡棉参数：** 600 × 400 × 100 mm，居中放置于桌面；6 个槽位（每类 3 个），槽深 60 mm。任务开始前泡棉内无工件，工件随机分布在左侧料箱中（大 3 + 小 3）。
-
-**评分规则：** 每轮 100 分，共 10 轮，满分 1000 分。
-
-| 评分项     |                  分值 | 说明                                                          |
-| ---------- | --------------------: | ------------------------------------------------------------- |
-| 嵌装成功率 | 15 分/个 × 6 = 90 分 | 工件完全脱离夹爪并放入对应类别槽位内                          |
-| 嵌装效率   |                 10 分 | 2 分钟内完成全部嵌装；每超 30 s 扣 5 分；未完成全部类别不得分 |
-
-**完成判定标准：**
-
-1. 数量完整性：6 个工件全部放置。
-2. 位置正确性：每个工件放入与其类别对应的专用槽位，不允许错槽。
-3. 稳定性：工件不悬空、不明显倾斜、不与其他工件发生干涉。
-4. 姿态要求：两类电机均无强制方向约束，完整嵌入槽位即可。
-
-**配置文件：** `Ubtech_sim/config/Foam_Inlaying.yaml`
-
-### Task4：装箱（**Packing_Box**）
-
-**任务目标：** 控制折叠箱四个关节完成装箱动作。
-
-**评分规则：**
-
-| 指标     | 分值 | 说明                                  |
-| -------- | ---: | ------------------------------------- |
-| 短边闭合 |   30 | 两个短边关节达到目标，每个 15 分      |
-| 长边闭合 |   30 | 两个长边关节达到目标，每个 15 分      |
-| 时间评分 |   40 | 120 秒内完成满分，超时每 10 秒扣 5 分 |
-| 协同系数 |   — | 单臂 ×0.7，双臂协同 ×1.0            |
-| 总分     |  100 | 连续 10 步稳定判定成功                |
-
-**关键参数：**
-
-- 短边目标关节：`[-3.3219733, -3.3213105]`（关节 2、3）
-- 长边目标关节：`[-3.4906585, -3.4906585]`（关节 0、1）
-- 关节阈值：`0.2 rad`
-
-**配置文件：** `Ubtech_sim/config/Packing_Box.yaml`
-
----
-
 ## 项目结构
 
 ```text
@@ -530,8 +443,8 @@ HOST_WORKSPACE=/my/project/path ./run.sh
 
 `assets/` 通过 Git 子模块管理，对应 Hugging Face 仓库 `challenge2026_assets`，主要存放：
 
-- USD 场景资源
-- URDF 机器人模型
+- 场景资源
+- 机器人模型
 - 箱体、零件、任务场景文件
 
 核心目录：`assets/resources/`
@@ -635,8 +548,8 @@ datasets/
 ### 初始化项目
 
 ```bash
-git clone --recursive https://github.com/UBTECH-Robotics/GlobalHumanoidRobotChallenge2026_Baseline.git
-cd GlobalHumanoidRobotChallenge2026_Baseline
+git clone --recursive https://github.com/UBTECH-Robotics/GlobalHumanoidRobotChallenge_2026_Baseline.git
+cd GlobalHumanoidRobotChallenge_2026_Baseline
 
 # 若已单独克隆：
 git submodule update --init --recursive

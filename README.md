@@ -15,7 +15,6 @@ This repository provides a unified baseline implementation for GHRC 2026 partici
 - High-fidelity robot simulation with **NVIDIA Isaac Sim**
 - Teleoperation-based data recording in **LeRobotDataset V2.1** format
 - Imitation-learning model training and fine-tuning
-- Quick reproduction using official pretrained weights
 
 ---
 
@@ -24,7 +23,7 @@ This repository provides a unified baseline implementation for GHRC 2026 partici
 | Feature                        | Description                                                                          |
 | ------------------------------ | ------------------------------------------------------------------------------------ |
 | 🤖**Simulation**         | High-fidelity robot simulation based on NVIDIA Isaac Sim                             |
-| 📊**Data Collection**    | Keyboard, Pico, and more; recordings in standard**LeRobotDataset V2.1** format |
+| 📊**Data Collection**    | Keyboard; recordings in standard**LeRobotDataset V2.1** format |
 | 🧠**Model Training**     | Imitation-learning policies including**ACT**, **Pi0**, and others        |
 
 ---
@@ -78,7 +77,21 @@ huggingface-cli download UBTECH-Robotics/challenge2026_dataset --local-dir ./dat
 
 ### 1. Start the container
 
-The project uses Docker. Start from the repository root:
+The project uses Docker. 
+
+#### Docker Image Load
+
+Build the image from Dockefile.
+
+```bash
+# Navigate to the Baseline directory
+cd GlobalHumanoidRobotChallenge_2026_Baseline/
+
+# Build the container
+docker build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ -t <image_name> -f Dockerfile .
+```
+
+Start from the repository root:
 
 ```bash
 chmod +x run.sh
@@ -89,10 +102,10 @@ sudo ./run.sh
 
 | Variable                | Description                 | Default                                                  |
 | ----------------------- | --------------------------- | -------------------------------------------------------- |
-| `IMAGE_NAME`          | Docker image name           | `isaacsim5.1_lerobot5.1:v0`                            |
+| `IMAGE_NAME`          | Docker image name           | `GHRC_2026:v0`                            |
 | `CONTAINER_NAME`      | Container name              | `isaac_sim_lerobot`                                    |
 | `HOST_WORKSPACE`      | Host project path           | directory of `run.sh`                                  |
-| `CONTAINER_WORKSPACE` | Container workspace path    | `/workspace/GlobalHumanoidRobotChallenge2026_Baseline` |
+| `CONTAINER_WORKSPACE` | Container workspace path    | `/workspace/GlobalHumanoidRobotChallenge_2026_Baseline` |
 | `SHM_SIZE`            | Shared memory size          | `8g`                                                   |
 | `ISAAC_CACHE_ROOT`    | Isaac Sim cache directory   | `${HOME}/.cache/isaac_sim_container`                   |
 | `HF_CACHE`            | HuggingFace cache directory | `${HOME}/.cache/huggingface`                           |
@@ -118,7 +131,7 @@ HOST_WORKSPACE=/my/project/path ./run.sh
 
 ### 2. Teleoperation
 
-Inside the container (default workspace: `/workspace/GlobalHumanoidRobotChallenge2026_Baseline`):
+Inside the container (default workspace: `/workspace/GlobalHumanoidRobotChallenge_2026_Baseline`):
 
 ```bash
 /isaac-sim/python.sh lerobot/scripts/control_robot.py \
@@ -138,6 +151,13 @@ Inside the container (default workspace: `/workspace/GlobalHumanoidRobotChalleng
 | `control.fps`             | Control rate                                         | `30`            |
 | `control.teleop_time_s`   | Teleop duration (seconds)                            | `100000000`     |
 | `control.display_cameras` | Show camera views                                    | `true`          |
+
+| Task Name（`control.task`）            | config file   |
+| -------------------------- | --------------- |
+| Part_Sorting  | `Ubtech_sim/config/Part_Sorting.yaml` |
+| Conveyor_Sorting  | `Ubtech_sim/config/Conveyor_Sorting.yaml` |
+| Foam_Inlaying  | `Ubtech_sim/config/Part_Sorting.yaml` |
+| Packing_Box  | `Ubtech_sim/config/Part_Sorting.yaml` |
 
 #### Keyboard Controls
 
@@ -186,7 +206,7 @@ Inside the container (default workspace: `/workspace/GlobalHumanoidRobotChalleng
 ```bash
 /isaac-sim/python.sh lerobot/scripts/control_robot.py \
     --robot.type=walker_s2_sim \
-    --control.root=/workspace/GlobalHumanoidRobotChallenge2026_Baseline/datasets/Packing_Box/v1 \
+    --control.root=/workspace/GlobalHumanoidRobotChallenge_2026_Baseline/datasets/Packing_Box/v1 \
     --control.type=record \
     --control.task=Packing_Box \
     --control.fps=30 \
@@ -391,114 +411,6 @@ Run a trained policy in the simulation environment and automatically record resu
 
 ---
 
-## Task Definitions
-
-### Task 1 — Part_Sorting
-
-**Goal:** Pick parts from the workbench and place them in the designated box.
-
-**Scoring:**
-
-| Metric     | Score | Description                                     |
-| ---------- | ----: | ----------------------------------------------- |
-| Lift score |    40 | Part Z height ≥ threshold; 10 pts each, max 40 |
-| Box score  |    40 | Part placed in correct box; 10 pts each, max 40 |
-| Time score |    20 | Full score within 40 s; −5 pts per 10 s over   |
-| Total      |   100 | ≥ 100 = success                                |
-
-**Config:** `Ubtech_sim/config/Part_Sorting.yaml`
-
-### Task 2 — Conveyor_Sorting
-
-**Goal:** Continuously perceive parts moving on the conveyor belt, distinguish servo assemblies (Part B) from orthogonal reducers (Part A), and sort each into the designated box on the left or right side of the conveyor.
-
-**Scene elements:** Table, conveyor belt, parts, boxes.
-
-**Conveyor parameters:**
-
-| Parameter           | Value                                            |
-| ------------------- | ------------------------------------------------ |
-| Speed               | 0.02 m/s                                         |
-| Direction           | Along X-axis, travel 1000 mm                     |
-| Dimensions          | 1500 × 300 mm, height 1000 mm                   |
-| Part appearance     | Random interval 5–10 s, total duration 80 s     |
-| Part spawn position | Centerline of conveyor start, random orientation |
-
-**Parts:**
-
-| ID     | Name               | Size                  | Color          |
-| ------ | ------------------ | --------------------- | -------------- |
-| Part A | Orthogonal reducer | ~40–60 mm (max edge) | Blue           |
-| Part B | Servo assembly     | 80 × 50 × 45 mm     | Original color |
-
-**Scoring:** 10 parts per round (5×A + 5×B), 10 rounds, total 1000 pts.
-
-| Metric                      |          Score | Description                                                         |
-| --------------------------- | -------------: | ------------------------------------------------------------------- |
-| Sort success                |    10 pts/part | Part fully released from gripper and at rest inside the correct box |
-| Sort failure                |          0 pts | Part dropped or placed in wrong box                                 |
-| Successful grasp, wrong box | grasp pts only | Grasp is credited; sort score is not awarded                        |
-| Round total                 |         80 pts | —                                                                  |
-
-**Config:** `Ubtech_sim/config/Conveyor_Sorting.yaml`
-
-### Task 3 — Foam_Inlaying
-
-**Goal:** Pick all specified parts from the source box and embed them into the correct foam slots of the cargo case, meeting quantity, position, and orientation requirements.
-
-**Scene elements:** Table, foam pad with slots, boxes.
-
-**Time limit:** ≤ 2 minutes; −5 pts per additional 30 s (floor at 0).
-
-**Parts:**
-
-| ID     | Name                   | Size              | Color      |
-| ------ | ---------------------- | ----------------- | ---------- |
-| Part A | 28-step motor (small)  | 50 × 20 × 25 mm | Two colors |
-| Part B | Servo assembly (large) | 80 × 50 × 45 mm | Two colors |
-
-**Foam pad:** 600 × 400 × 100 mm, centered on table; 6 slots (3 per type), slot depth 60 mm. No parts in foam at task start. Parts start randomly distributed in the source box (3 large + 3 small).
-
-**Scoring:** 100 pts per round, 10 rounds, total 1000 pts.
-
-| Metric               |                     Score | Description                                                                          |
-| -------------------- | ------------------------: | ------------------------------------------------------------------------------------ |
-| Embedding success    | 15 pts/part × 6 = 90 pts | Part fully released from gripper and placed in the correct type slot                 |
-| Embedding efficiency |                    10 pts | All parts embedded within 2 min; −5 pts per 30 s over; no score if not all embedded |
-
-**Completion criteria:**
-
-1. All 6 parts placed (quantity).
-2. Each part in its type-matched slot (position).
-3. Parts fully seated — no suspension, no tilt, no interference.
-4. Orientation: no strict directional constraint for either motor type.
-
-**Config:** `Ubtech_sim/config/Foam_Inlaying.yaml`
-
-### Task 4 — Packing Box
-
-**Goal:** Control four joints of a foldable box to complete the packing action.
-
-**Scoring:**
-
-| Metric               | Score | Description                                    |
-| -------------------- | ----: | ---------------------------------------------- |
-| Short edges closed   |    30 | 2 short-edge joints reach target; 15 pts each  |
-| Long edges closed    |    30 | 2 long-edge joints reach target; 15 pts each   |
-| Time score           |    40 | Full score within 120 s; −5 pts per 10 s over |
-| Collaboration factor |    — | Single arm ×0.7; bimanual ×1.0               |
-| Total                |   100 | Stable for 10 consecutive steps = success      |
-
-**Key parameters:**
-
-- Short-edge targets: `[-3.3219733, -3.3213105]` (joints 2, 3)
-- Long-edge targets: `[-3.4906585, -3.4906585]` (joints 0, 1)
-- Joint threshold: `0.2 rad`
-
-**Config:** `Ubtech_sim/config/Packing_Box.yaml`
-
----
-
 ## Repository Layout
 
 ```
@@ -534,8 +446,8 @@ Simulation is split into two parts:
 
 `assets/` is a Git submodule aligned with [challenge2026_assets](https://huggingface.co/UBTECH-Robotics/challenge2026_assets). It stores:
 
-- USD scene resources
-- URDF robot models
+- Scene resources
+- Robot models
 - Boxes, parts, and task scene files
 
 Core directory: `assets/resources/`
@@ -639,8 +551,8 @@ datasets/
 ### Clone with submodules
 
 ```bash
-git clone --recursive https://github.com/UBTECH-Robotics/GlobalHumanoidRobotChallenge2026_Baseline.git
-cd GlobalHumanoidRobotChallenge2026_Baseline
+git clone --recursive https://github.com/UBTECH-Robotics/GlobalHumanoidRobotChallenge_2026_Baseline.git
+cd GlobalHumanoidRobotChallenge_2026_Baseline
 
 # If already cloned without submodules:
 git submodule update --init --recursive
