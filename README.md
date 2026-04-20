@@ -43,14 +43,15 @@ Large artifacts are hosted on Hugging Face. Download them before use:
 # Install Hugging Face CLI
 pip install huggingface-hub
 
-# Simulation assets (recommended: init submodule)
+# Simulation assets
+# Method 1: Using Git submodules
 git submodule update --init --recursive
 
-# Or download directly into ./assets
-# huggingface-cli download UBTECH-Robotics/challenge2026_assets --local-dir ./assets --repo-type model
+# Method 2: Download directly into ./assets
+hf download UBTECH-Robotics/challenge2026_assets --local-dir ./assets
 
 # Training datasets
-huggingface-cli download UBTECH-Robotics/challenge2026_dataset --local-dir ./datasets --repo-type dataset
+hf download UBTECH-Robotics/challenge2026_dataset --local-dir ./datasets --repo-type dataset
 
 ```
 
@@ -102,7 +103,7 @@ sudo ./run.sh
 
 | Variable                | Description                 | Default                                                  |
 | ----------------------- | --------------------------- | -------------------------------------------------------- |
-| `IMAGE_NAME`          | Docker image name           | `GHRC_2026:v0`                            |
+| `IMAGE_NAME`          | Docker image name           | `ghrc_2026:v0`                            |
 | `CONTAINER_NAME`      | Container name              | `isaac_sim_ubt`                                    |
 | `HOST_WORKSPACE`      | Host project path           | directory of `run.sh`                                  |
 | `CONTAINER_WORKSPACE` | Container workspace path    | `/workspace/GlobalHumanoidRobotChallenge_2026_Baseline` |

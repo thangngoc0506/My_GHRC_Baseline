@@ -43,14 +43,15 @@
 # 安装 huggingface-cli
 pip install huggingface-hub
 
-# 获取仿真资产（推荐使用 Git 子模块）
+# 获取仿真资产
+# 方法一：使用 Git 子模块
 git submodule update --init --recursive
 
-# 或手动下载到 ./assets
-# huggingface-cli download UBTECH-Robotics/challenge2026_assets --local-dir ./assets --repo-type model
+# 方法二：手动下载到 ./assets
+hf download UBTECH-Robotics/challenge2026_assets --local-dir ./assets
 
 # 下载训练数据集
-huggingface-cli download UBTECH-Robotics/challenge2026_dataset --local-dir ./datasets --repo-type dataset
+hf download UBTECH-Robotics/challenge2026_dataset --local-dir ./datasets --repo-type dataset
 
 ```
 
@@ -88,7 +89,10 @@ huggingface-cli download UBTECH-Robotics/challenge2026_dataset --local-dir ./dat
 cd GlobalHumanoidRobotChallenge_2026_Baseline/
 
 # 构建容器
-docker build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ -t GHRC_2026:v0 -f Dockerfile .
+docker build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ -t ghrc_2026:v0 -f Dockerfile .
+
+# # If encountered network connectivity issues, try:
+docker build --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple/ -t ghrc_2026:v0 -f Dockerfile .
 ```
 
 从项目根目录启动：
@@ -102,7 +106,7 @@ sudo ./run.sh
 
 | 环境变量                | 说明                 | 默认值                                                   |
 | ----------------------- | -------------------- | -------------------------------------------------------- |
-| `IMAGE_NAME`          | Docker 镜像名称      | `GHRC_2026:v0`                            |
+| `IMAGE_NAME`          | Docker 镜像名称      | `ghrc_2026:v0`                            |
 | `CONTAINER_NAME`      | 容器名称             | `isaac_sim_ubt`                                    |
 | `HOST_WORKSPACE`      | 主机项目目录路径     | `run.sh` 所在目录                                      |
 | `CONTAINER_WORKSPACE` | 容器内工作目录路径   | `/workspace/GlobalHumanoidRobotChallenge_2026_Baseline` |
